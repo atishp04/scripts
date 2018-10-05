@@ -1,0 +1,46 @@
+import re
+import os
+import subprocess
+import csv
+import json
+import sys
+from collections import defaultdict
+
+class const(object):
+	'''
+	This is a constant class which defines all constants for riscv helper.
+	'''
+	class ConstError(TypeError): pass
+	def __setattr__(self,name,value):
+		if self.__dict__.has_key(name):
+			raise self.ConstError, "Can't rebind const(%s)"%name
+		self.__dict__[name]=value
+	
+	#path strings
+	PATH_STRING_SERIAL_MAC = "/dev/tty.usb*"
+	PATH_STRING_SERIAL_LINUX = "/dev/tty[A-Za-z]*"
+
+	PATH_STRING_BUILD_SERVER = "jedi-01.sdcorp.global.sandisk.com"
+	PATH_STRING_BBL_IMAGE = "/home/atish/workspace/freedom-u-sdk/work/bbl.bin" 
+	PATH_STRING_FSBL_IMAGE = "/home/atish/workspace/freedom-u540-c000-bootloader/fsbl.bin"	
+	PATH_STRING_BBL_PART_SDCARD = "/dev/disk2s1"
+	PATH_STRING_FSBL_PART_SDCARD = "/dev/disk2s4"
+
+	USERNAME_BUILD_SERVER = "atish"
+	PASSWORD_BUILD_SERVER = ""
+
+		
+	#All error strings
+	ERR_STRING_INVALID_OPTIONS = "Invalid options. help [cmd]"
+	#All command strings
+	CMD_GET_ALL_SCREENS = "sudo screen -ls"	
+	CMD_QUIT_SCREEN_SESSION = "sudo screen -X -S %s quit"
+	CMD_CONNECT_SCREEN_SESSION = "sudo screen -L %s %d"
+	#Copy the bbl image from remote server to local machine	
+	CMD_BBL_COPY = "scp " + USERNAME_BUILD_SERVER + "@" + PATH_STRING_BUILD_SERVER + ":" +PATH_STRING_BBL_IMAGE + " /tmp" 
+	
+	CMD_FSBL_COPY = "scp " + USERNAME_BUILD_SERVER + "@" + PATH_STRING_BUILD_SERVER + ":" +PATH_STRING_FSBL_IMAGE + " /tmp" 
+	CMD_BBL_INSTALL = "sudo dd if=/tmp/bbl.bin of=" + PATH_STRING_BBL_PART_SDCARD + " bs=1024"	
+	CMD_FSBL_INSTALL = "sudo dd if=/tmp/fsbl.bin of=" + PATH_STRING_FSBL_PART_SDCARD	
+	
+	
