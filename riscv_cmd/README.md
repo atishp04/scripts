@@ -24,8 +24,6 @@ pip install pexpect
 #Install serial
 ```
 pip install serial
-
 pip install pexpect_serial
-
 pip install pyserial
 ```
