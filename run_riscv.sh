@@ -13,15 +13,14 @@ kernel_arm="/home/atish/workspace/linux/arch/arm/boot/zImage"
 kernel_arm64="/home/atish/workspace/linux/arch/arm64/boot/Image"
 
 #rootfs path
-#rootfs="/home/atish/workspace/test_rootfs.ext4"
-rootfs_arm="/home/atish/workspace/rootfs_images/arm_busybox_rootfs.img"
-rootfs_arm64="/home/atish/workspace/rootfs_images/arm64_busybox_rootfs.img"
+rootfs_path="/home/atish/workspace/rootfs_images"
+rootfs_arm="$rootfs_path/arm_busybox_rootfs.img"
+rootfs_arm64="$rootfs_path/arm64_busybox_rootfs.img"
 #rootfs_arm64="/home/atish/workspace/rootfs_images/arm64_busybox_rootfs.ext2"
-#rootfs="/home/atish/workspace/buildroot/output/images/rootfs.ext2"
-#rootfs="/home/atish/workspace/buildroot-2019.02-rc1/output/images/rootfs.ext2"
 
 #qemu path
-qemu_bin_riscv="/home/atish/workspace/qemu/riscv64-softmmu/qemu-system-riscv64"
+qemu_bin_riscv64="/home/atish/workspace/qemu/riscv64-softmmu/qemu-system-riscv64"
+qemu_bin_riscv32="/home/atish/workspace/qemu/riscv32-softmmu/qemu-system-riscv32"
 qemu_bin_arm="/home/atish/workspace/qemu/arm-softmmu/qemu-system-arm"
 qemu_bin_arm64="/home/atish/workspace/qemu/aarch64-softmmu/qemu-system-aarch64"
 
@@ -31,21 +30,30 @@ rootarg_ram="root=/dev/ram0"
 
 #kernel cmdline
 cmdline_riscv="'$rootarg_vda rw console=ttyS0 earlycon=sbi'"
-#cmdline_riscv="'$rootarg_vda rw console=ttyS0 earlycon=sbi nosmp'"
-#cmdline_riscv="'$rootarg_vda rw console=ttyS0 earlycon=sbi nr_cpus=2'"
 cmdline_arm="'$rootarg_ram rw console=ttyS0 console=ttyAMA0'"
 cmdline_arm64="'$rootarg_ram rw console=ttyS0 console=ttyAMA0'"
 
 qemu_payload_riscv64="~/workspace/opensbi/build/platform/qemu/virt/firmware/fw_payload.elf"
+
+if [ "$arch" == "riscv64" ]; then
+	export CROSS_COMPILE=riscv64-linux-
+	XLEN=64
+	qemu_bin=$qemu_bin_riscv64
+	rootfs_riscv_initramfs="$rootfs_path/riscv64_busybox_rootfs.img"
+elif [ "$arch" == "riscv32" ]; then
+	export CROSS_COMPILE=riscv32-unknown-linux-gnu-
+	XLEN=32
+	qemu_bin=$qemu_bin_riscv32
+	rootfs_riscv_initramfs="$rootfs_path/riscv32_busybox_rootfs.img"
+fi
+
 #arch specific
-if [ "$arch" == "riscv" ]; then
-	qemu_bin=$qemu_bin_riscv
+if [ "$arch" == "riscv64" ] || [ "$arch" == "riscv32" ]; then
 	cmdline=$cmdline_riscv
 	kernel=$kernel_riscv
-	#rootfs_riscv_initramfs="/home/atish/workspace/rootfs_images/riscv64_busybox_rootfs.img"
-	rootfs_riscv_ext2="/home/atish/workspace/rootfs_images/riscv64_busybox_rootfs.ext2"
+	#rootfs_riscv_ext2="/home/atish/workspace/rootfs_images/riscv64_busybox_rootfs.ext2"
 	rootfsargs="-initrd $rootfs_riscv_initramfs"
-	rootfsargs="-drive file=$rootfs_riscv_ext2,format=raw,id=hd0 -device virtio-blk-device,drive=hd0" 
+	#rootfsargs="-drive file=$rootfs_riscv_ext2,format=raw,id=hd0 -device virtio-blk-device,drive=hd0" 
 	qemu_run_cmd="$qemu_bin -M virt -m 256M -smp 8 -display none -serial mon:stdio -kernel $qemu_payload_riscv64 \
 		$rootfsargs \
 		-netdev user,id=net0 -device virtio-net-device,netdev=usernet \
@@ -74,13 +82,13 @@ elif [ "$arch" == "arm64" ]; then
 		-netdev user,id=usernet,hostfwd=tcp::10000-:22 -s -append $cmdline" 
 fi
 
-if [ "$arch" == "riscv" ]; then
-export ARCH=riscv
-export CROSS_COMPILE=riscv64-linux-
-make distclean
-echo "Building the firmware...."
+#Build the firmware if riscv
+if [ "$arch" == "riscv64" ] || [ "$arch" == "riscv32" ]; then
+	make distclean
+	echo "Building the firmware...."
+	export ARCH=riscv
 if [ "$plat" == "qemu" ]; then
-	make -j 32 PLATFORM=qemu/virt FW_PAYLOAD_PATH=$kernel
+	make -j 32 PLATFORM=qemu/virt FW_PAYLOAD_PATH=$kernel PLATFORM_RISCV_XLEN=$XLEN
 elif [ "$plat" == "fu540" ]; then
 	#make -j 32 PLATFORM=sifive/fu540 FW_PAYLOAD_PATH=$kernel
 	make -j 32 PLATFORM=sifive/fu540 FW_PAYLOAD_PATH=$kernel FW_PAYLOAD_FDT="unleashed_topology.dtb"
