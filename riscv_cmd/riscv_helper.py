@@ -67,7 +67,9 @@ def check_screen_session():
 	else:
 		print outL[0]
 def connect_to_serial(port):
-	cmd = const.CMD_CONNECT_SCREEN_SESSION %(port, baud)
+	#cmd = const.CMD_CONNECT_SCREEN_SESSION %(port, baud)
+	cmd = const.CMD_CONNECT_MINICOM_SESSION %(port)
+	print cmd
 	child = pexpect.spawn(cmd)
 	try:
         	child.logfile = open(logfile, "a")

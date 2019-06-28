@@ -69,14 +69,14 @@ class riscv_cmd(cmd.Cmd):
 		connect_usb_serial()
 
 	def do_flash(self, args):
-		"flash -t [binary] - flash bbl or fsbl"
+		"flash -t [binary] - flash bl or fsbl"
 		bimageType = self.parse_args(sys._getframe().f_code.co_name, args)
 		print bimageType
-		if bimageType == "bbl":
-			print const.CMD_BBL_COPY
-			exec_shell_cmd_stdout(const.CMD_BBL_COPY)	
-			print const.CMD_BBL_INSTALL
-			exec_shell_cmd_stdout(const.CMD_BBL_INSTALL)	
+		if bimageType == "bl":
+			print const.CMD_BL_COPY
+			exec_shell_cmd_stdout(const.CMD_BL_COPY)	
+			print const.CMD_BL_INSTALL
+			exec_shell_cmd_stdout(const.CMD_BL_INSTALL)	
 		elif bimageType == "fsbl":
 			print const.CMD_FSBL_COPY
 			exec_shell_cmd_stdout(const.CMD_FSBL_COPY)	
