@@ -1,0 +1,194 @@
+From 4ca3edcae027919579dda87e329dc6deab4eab6b Mon Sep 17 00:00:00 2001
+From: Atish Patra <atish.patra@wdc.com>
+Date: Wed, 19 Jun 2019 15:56:33 -0700
+Subject: [PATCH] upgrade to python3
+
+Signed-off-by: Atish Patra <atish.patra@wdc.com>
+---
+ riscv_cmd/riscv-cmd.py    | 54 +++++++++++++++++++--------------------
+ riscv_cmd/riscv_helper.py | 17 ++++++------
+ riscv_cmd/riscv_utils.py  |  2 +-
+ 3 files changed, 36 insertions(+), 37 deletions(-)
+
+diff --git a/riscv_cmd/riscv-cmd.py b/riscv_cmd/riscv-cmd.py
+index 877fc79..32df430 100644
+--- a/riscv_cmd/riscv-cmd.py
++++ b/riscv_cmd/riscv-cmd.py
+@@ -22,13 +22,13 @@ def cmdloop(self, intro=None):
+ 		return cmd.Cmd.cmdloop(self, intro)
+ 	
+ 	def emptyline(self):
+-		print "*** Unknown Syntax ***. Enter help for all supported commands"
++		print("*** Unknown Syntax ***. Enter help for all supported commands")
+ 
+ 	def parse_args(self, func, args):
+-		
++
+ 		argList = shlex.split(args)
+ 		try:
+-	   		if func in riscv_cmd.arg_options:
++			if func in riscv_cmd.arg_options:
+ 				argoptions = riscv_cmd.arg_options[func]
+ 				opts, remainder = getopt.getopt(argList,riscv_cmd.arg_options[func])
+ 			else:
+@@ -44,25 +44,25 @@ def do_help(self, arg):
+ 		'This function overrides the base function to print help message accordingly'
+ 		if arg:
+ 		    # XXX check arg syntax
+-		    try:
+-			func = getattr(self, 'help_' + arg)
+-		    except AttributeError:
+ 			try:
+-			    doc=getattr(self, 'do_' + arg).__doc__
+-			    if doc:
+-				self.stdout.write("%s\n"%str(doc))
+-				return
++				func = getattr(self, 'help_' + arg)
+ 			except AttributeError:
+-			    pass
+-			self.stdout.write("%s\n"%str(self.nohelp % (arg,)))
+-			return
+-		    func()
++				try:
++					doc=getattr(self, 'do_' + arg).__doc__
++					if doc:
++						self.stdout.write("%s\n"%str(doc))
++						return
++				except AttributeError:
++				    pass
++				self.stdout.write("%s\n"%str(self.nohelp % (arg,)))
++				return
++			func()
+ 		else:
+ 			with open('help', 'r') as hfile:
+ 				shelp = hfile.read()
+-		    		print "Current version : %.2f " %riscv_cmd.version
+-				print shelp
+-		    		hfile.close()
++				print( "Current version : %.2f " %riscv_cmd.version)
++				print( shelp)
++				hfile.close()
+ 
+ 	def do_login(self, args):
+ 		"login "
+@@ -71,37 +71,37 @@ def do_login(self, args):
+ 	def do_flash(self, args):
+ 		"flash -t [binary] - flash bbl or fsbl"
+ 		bimageType = self.parse_args(sys._getframe().f_code.co_name, args)
+-		print bimageType
++		print( bimageType)
+ 		if bimageType == "bbl":
+-			print const.CMD_BBL_COPY
++			print( const.CMD_BBL_COPY)
+ 			exec_shell_cmd_stdout(const.CMD_BBL_COPY)	
+-			print const.CMD_BBL_INSTALL
++			print( const.CMD_BBL_INSTALL)
+ 			exec_shell_cmd_stdout(const.CMD_BBL_INSTALL)	
+ 		elif bimageType == "fsbl":
+-			print const.CMD_FSBL_COPY
++			print( const.CMD_FSBL_COPY)
+ 			exec_shell_cmd_stdout(const.CMD_FSBL_COPY)	
+-			print const.CMD_FSBL_INSTALL
++			print( const.CMD_FSBL_INSTALL)
+ 			exec_shell_cmd_stdout(const.CMD_FSBL_INSTALL)	
+ 			
+ 		else:
+-			print "Invalid binary image type"
++			print( "Invalid binary image type")
+ 			return False
+ 
+ 	def do_quit(self,line):
+ 		"quit - To quit/exit the riscv command console"
+-		print "Exiting the riscv command console"
++		print( "Exiting the riscv command console")
+ 		return True
+ 	def do_exit(self, line):
+ 		"exit - To exit/exit the riscv command console"
+-		print "Exiting the riscv command console"
++		print( "Exiting the riscv command console")
+ 		return True
+ 
+ if __name__ == '__main__':
+ 	if len(sys.argv) > 1:
+-	        if sys.argv[1] == "-h" or sys.argv[1] == "help" or sys.argv[1] == "--h": 
++		if sys.argv[1] == "-h" or sys.argv[1] == "help" or sys.argv[1] == "--h": 
+ 			riscv_cmd().onecmd("help")
+ 		else:
+-			print "Invalid options. riscv -h for more details"
++			print( "Invalid options. riscv -h for more details")
+ 			sys.exit(0)
+ 	else:
+ 		riscv_cmd().cmdloop()
+diff --git a/riscv_cmd/riscv_helper.py b/riscv_cmd/riscv_helper.py
+index 94bfb2d..c5cce0d 100644
+--- a/riscv_cmd/riscv_helper.py
++++ b/riscv_cmd/riscv_helper.py
+@@ -52,7 +52,7 @@ def get_serial_ports():
+             s.close()
+             result.append(port)
+         except (OSError, serial.SerialException):
+-            print "Couldnot attach to serial %s" %port
++            print( "Couldnot attach to serial %s" %port)
+     return result
+ 
+ def check_screen_session():
+@@ -61,23 +61,22 @@ def check_screen_session():
+ 	if (len(outL) > 1):
+ 		for dsession in outL:
+ 			if "tty" in dsession:
+-				print "Found an detached session %s" %dsession
++				print( "Found an detached session %s" %dsession)
+ 				cmd = const.CMD_QUIT_SCREEN_SESSION %dsession
+ 				exec_shell_cmd(cmd)
+ 	else:
+-		print outL[0]
++		print( outL[0])
+ def connect_to_serial(port):
+ 	cmd = const.CMD_CONNECT_SCREEN_SESSION %(port, baud)
+ 	child = pexpect.spawn(cmd)
+ 	try:
+         	child.logfile = open(logfile, "a")
+-	except Exception, e:
++	except:
+ 		child.logfile = None
+ 	child.interact()
+ 	#Returned from interact. Now kill the screen session
+ 	check_screen_session()
+ 		
+-
+ def connect_usb_serial(logfile=None):
+ 	
+ 	index = 0
+@@ -86,15 +85,15 @@ def connect_usb_serial(logfile=None):
+ 	sPortListLen = len(sPortList)
+ 	#TODO: Introduce an automatic mode where it will connect to the serial portcache by default	
+ 	if sPortListLen == 0:
+-		print "No serial port Found. Exiting."	
++		print( "No serial port Found. Exiting.")
+ 		return True
+ 	elif sPortListLen == 1:
+-		print "one serial port found"
++		print( "one serial port found")
+ 		connect_to_serial(sPortList[0])	
+ 	elif sPortListLen > 1:	
+-		print "Multiple serial port found"
++		print( "Multiple serial port found")
+ 	for index, port in enumerate(sPortList):
+-		print "%d. [%s]" %(index, port)
++		print( "%d. [%s]" %(index, port))
+ 	index = raw_input("Enter serial index to access that serial port or 'a' to iterate through all\n")
+ 
+ 	if index == 'a':
+diff --git a/riscv_cmd/riscv_utils.py b/riscv_cmd/riscv_utils.py
+index 69eb4fd..dabf7b4 100644
+--- a/riscv_cmd/riscv_utils.py
++++ b/riscv_cmd/riscv_utils.py
+@@ -13,7 +13,7 @@ class const(object):
+ 	class ConstError(TypeError): pass
+ 	def __setattr__(self,name,value):
+ 		if self.__dict__.has_key(name):
+-			raise self.ConstError, "Can't rebind const(%s)"%name
++			raise self.ConstError("Can't rebind const(%s)"%name)
+ 		self.__dict__[name]=value
+ 	
+ 	#path strings

@@ -52,7 +52,7 @@ def get_serial_ports():
             s.close()
             result.append(port)
         except (OSError, serial.SerialException):
-            print "Couldnot attach to serial %s" %port
+            print( "Couldnot attach to serial %s" %port)
     return result
 
 def check_screen_session():
@@ -61,40 +61,39 @@ def check_screen_session():
 	if (len(outL) > 1):
 		for dsession in outL:
 			if "tty" in dsession:
-				print "Found an detached session %s" %dsession
+				print( "Found an detached session %s" %dsession)
 				cmd = const.CMD_QUIT_SCREEN_SESSION %dsession
 				exec_shell_cmd(cmd)
 	else:
-		print outL[0]
+		print( outL[0])
 def connect_to_serial(port):
 	cmd = const.CMD_CONNECT_SCREEN_SESSION %(port, baud)
 	child = pexpect.spawn(cmd)
 	try:
         	child.logfile = open(logfile, "a")
-	except Exception, e:
+	except:
 		child.logfile = None
 	child.interact()
 	#Returned from interact. Now kill the screen session
 	check_screen_session()
-		
 
 def connect_usb_serial(logfile=None):
-	
+
 	index = 0
 	check_screen_session()
 	sPortList = get_serial_ports()
 	sPortListLen = len(sPortList)
-	#TODO: Introduce an automatic mode where it will connect to the serial portcache by default	
+	#TODO: Introduce an automatic mode where it will connect to the serial portcache by default
 	if sPortListLen == 0:
-		print "No serial port Found. Exiting."	
+		print( "No serial port Found. Exiting.")
 		return True
 	elif sPortListLen == 1:
-		print "one serial port found"
-		connect_to_serial(sPortList[0])	
-	elif sPortListLen > 1:	
-		print "Multiple serial port found"
+		print( "one serial port found")
+		connect_to_serial(sPortList[0])
+	elif sPortListLen > 1:
+		print( "Multiple serial port found")
 	for index, port in enumerate(sPortList):
-		print "%d. [%s]" %(index, port)
+		print( "%d. [%s]" %(index, port))
 	index = raw_input("Enter serial index to access that serial port or 'a' to iterate through all\n")
 
 	if index == 'a':
@@ -102,4 +101,4 @@ def connect_usb_serial(logfile=None):
 			connect_to_serial(port)
 	else:
 		portcache = index
-		connect_to_serial(sPortList[int(index)])	
+		connect_to_serial(sPortList[int(index)])
