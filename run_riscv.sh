@@ -1,11 +1,13 @@
 #!/bin/bash
 
-#./run.sh <arch> <platform> <run>
+#./run.sh <arch> <platform> <run> <distro> <debug> <bootloader> 
 
 arch=$1
 plat=$2
 run=$3
 distro=$4
+debug=$5
+bl=$6
 
 #kernel path
 #kernel="/scratch/workspace/freedom-u-sdk/work/linux/arch/riscv/boot/Image"
@@ -30,12 +32,15 @@ qemu_bin_arm64="/home/atish/workspace/qemu/aarch64-softmmu/qemu-system-aarch64"
 rootarg_vda="root=/dev/vda"
 rootarg_ram="root=/dev/ram0"
 
+#u-boot
+uboot_riscv="/home/atish/workspace/u-boot/u-boot.bin"
+
 #kernel cmdline
 #cmdline_riscv="'$rootarg_vda rw console=ttyS0 earlycon=sbi'"
 cmdline_arm="'$rootarg_ram rw console=ttyS0 console=ttyAMA0'"
 cmdline_arm64="'$rootarg_ram rw console=ttyS0 console=ttyAMA0'"
 
-qemu_payload_riscv64="~/workspace/opensbi/build/platform/qemu/virt/firmware/fw_jump.elf"
+qemu_payload_riscv64="~/workspace/opensbi/build/platform/qemu/virt/firmware/fw_jump.bin"
 script_dir="~/workspace/scripts"
 uboot_env="$script_dir/tftp-boot.txt"
 work_dir=$(pwd)
@@ -55,9 +60,9 @@ if [ "$arch" == "riscv64" ]; then
 		riscv64-linux-strip lkvm-static
 		cd -
 		#TODO: build lkvm and copy that as well
-		cp -f /home/atish/workspace/kvmtool/run.sh ~/workspace/busybox-1.27.2-kvm-riscv64/_install/apps/
-		cp -f /home/atish/workspace/kvmtool/lkvm-static busybox-1.27.2-kvm-riscv64/_install/apps
-		cp -f /home/atish/workspace/linux/arch/riscv/boot/Image busybox-1.27.2-kvm-riscv64/_install/apps
+		cp -f /home/atish/workspace/kvmtool/run.sh /home/atish/workspace/busybox-1.27.2-kvm-riscv64/_install/apps/
+		cp -f /home/atish/workspace/kvmtool/lkvm-static /home/atish/workspace/busybox-1.27.2-kvm-riscv64/_install/apps
+		cp -f /home/atish/workspace/linux/arch/riscv/boot/Image /home/atish/workspace/busybox-1.27.2-kvm-riscv64/_install/apps
 		cd /home/atish/workspace/busybox-1.27.2-kvm-riscv64/_install; find ./ | cpio -o -H newc > ../../rootfs_kvm_riscv64.img; cd -
 		cp rootfs_kvm_riscv64.img $rootfs_path
 		rootfs_riscv_initramfs="$rootfs_path/rootfs_kvm_riscv64.img"
@@ -65,10 +70,12 @@ if [ "$arch" == "riscv64" ]; then
 		rootarg=$rootargam
 	elif [ "$distro" == "fedora" ];then
 		#rootfs_riscv_ext2="/media/atish/scratch2/fedora_image/Fedora-Developer-Rawhide-20190328.n.0-sda.raw"
-		rootfs_riscv_ext2="/scratch2/fedora_riscv/Fedora-Developer-Rawhide-20190516.n.0-sda.raw"
+		#rootfs_riscv_ext2="/scratch2/fedora_riscv/Fedora-Developer-Rawhide-20190516.n.0-sda.raw"
+		rootfs_riscv_ext2="/scratch2/fedora_riscv/Fedora_20190703_glibc_sdb.raw"
+		#rootfs_riscv_ext2="/scratch2/fedora_riscv/Fedora-Developer-Rawhide-20190703.n.0-sda2.raw"
 		rootfsargs="-drive file=$rootfs_riscv_ext2,format=raw,id=hd0 -device virtio-blk-device,drive=hd0" 
 		rootarg="root=/dev/vda2"
-		#rootarg="root=/dev/vda1"
+		#rootarg="root=/dev/vda"
 	fi
 elif [ "$arch" == "riscv32" ]; then
 	export ARCH=riscv
@@ -82,18 +89,33 @@ fi
 if [ "$arch" == "riscv64" ] || [ "$arch" == "riscv32" ]; then
 	cmdline="'$rootarg rw console=ttyS0 earlycon=sbi'"
 	kernel=$kernel_riscv
-	echo "Setting qemu run cmd for $distro"
-	if [ "$distro" == "kvm" ]; then
-		qemu_run_cmd="$qemu_bin -monitor null -cpu rv64,h=true -M virt -m 512M -smp 1 -display none -serial mon:stdio -kernel $qemu_payload_riscv64 \
-		-device loader,file=$kernel,addr=0x80200000 $rootfsargs -append $cmdline"
+	echo "Setting qemu run cmd for $distro with $debug"
+	if [ "$debug" == "gdb" ]; then
+		doptions="-S"
 	else
+		doptions=""
+	fi
+	echo $doptions
+	if [ "$distro" == "kvm" ]; then
+		qemu_run_cmd="$qemu_bin -monitor null -cpu rv64,x-h=true -M virt -m 512M -smp 8 -display none -serial mon:stdio -kernel $qemu_payload_riscv64 \
+		-device loader,file=$kernel,addr=0x80200000 $rootfsargs -append $cmdline $doptions"
+	elif [ "$bl" == "uboot" ]; then
 		echo "Setting qemu run cmd for $distro"
-		qemu_run_cmd="$qemu_bin -M virt -m 2G -smp 8 -display none -serial mon:stdio -kernel $qemu_payload_riscv64 \
-			-device loader,file=$kernel,addr=0x80200000 $rootfsargs \
+		qemu_run_cmd="$qemu_bin -M virt -m 16G -smp 8 -display none -serial mon:stdio -bios $qemu_payload_riscv64 \
+			-kernel $uboot_riscv \
+			-device loader,file=$kernel,addr=0x84000000 $rootfsargs \
 			-object rng-random,filename=/dev/urandom,id=rng0 \
 			-device virtio-rng-device,rng=rng0 \
 			-netdev user,id=net0 -device virtio-net-device,netdev=usernet \
-			-netdev user,id=usernet,hostfwd=tcp::10000-:22 -s -append $cmdline" 
+			-netdev user,id=usernet -append $cmdline $doptions" 
+	else
+		qemu_run_cmd="$qemu_bin -M virt -m 16G -smp 8 -display none -serial mon:stdio -bios $qemu_payload_riscv64 \
+			-kernel $kernel $rootfsargs \
+			-object rng-random,filename=/dev/urandom,id=rng0 \
+			-device virtio-rng-device,rng=rng0 \
+			-netdev user,id=net0 -device virtio-net-device,netdev=usernet \
+			-netdev user,id=usernet -append $cmdline $doptions" 
+		
 	fi
 elif [ "$arch" == "arm" ]; then
 	qemu_bin=$qemu_bin_arm
