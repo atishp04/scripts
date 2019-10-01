@@ -9,31 +9,32 @@ distro=$4
 debug=$5
 bl=$6
 
+work_dir="/home/atish/workspace"
 #kernel path
 #kernel="/scratch/workspace/freedom-u-sdk/work/linux/arch/riscv/boot/Image"
-kernel_riscv="/home/atish/workspace/linux/arch/riscv/boot/Image"
-kernel_arm="/home/atish/workspace/linux/arch/arm/boot/zImage"
-kernel_arm64="/home/atish/workspace/linux/arch/arm64/boot/Image"
+kernel_riscv="$work_dir/linux/arch/riscv/boot/Image"
+kernel_arm="$work_dir/linux/arch/arm/boot/zImage"
+kernel_arm64="$work_dir/linux/arch/arm64/boot/Image"
 
-kernel_dt_path="/home/atish/workspace/linux/arch/riscv/boot/dts/sifive/hifive-unleashed-a00.dtb"
+kernel_dt_path="$work_dir/linux/arch/riscv/boot/dts/sifive/hifive-unleashed-a00.dtb"
 #rootfs path
-rootfs_path="/home/atish/workspace/rootfs_images"
+rootfs_path="$work_dir/rootfs_images"
 rootfs_arm="$rootfs_path/arm_busybox_rootfs.img"
 rootfs_arm64="$rootfs_path/arm64_busybox_rootfs.img"
-#rootfs_arm64="/home/atish/workspace/rootfs_images/arm64_busybox_rootfs.ext2"
+#rootfs_arm64="$work_dir/rootfs_images/arm64_busybox_rootfs.ext2"
 
 #qemu path
-qemu_bin_riscv64="/home/atish/workspace/qemu/riscv64-softmmu/qemu-system-riscv64"
-qemu_bin_riscv32="/home/atish/workspace/qemu/riscv32-softmmu/qemu-system-riscv32"
-qemu_bin_arm="/home/atish/workspace/qemu/arm-softmmu/qemu-system-arm"
-qemu_bin_arm64="/home/atish/workspace/qemu/aarch64-softmmu/qemu-system-aarch64"
+qemu_bin_riscv64="$work_dir/qemu/riscv64-softmmu/qemu-system-riscv64"
+qemu_bin_riscv32="$work_dir/qemu/riscv32-softmmu/qemu-system-riscv32"
+qemu_bin_arm="$work_dir/qemu/arm-softmmu/qemu-system-arm"
+qemu_bin_arm64="$work_dir/qemu/aarch64-softmmu/qemu-system-aarch64"
 
 #rootargs
 rootarg_vda="root=/dev/vda"
 rootarg_ram="root=/dev/ram0"
 
 #u-boot
-uboot_riscv="/home/atish/workspace/u-boot/u-boot.bin"
+uboot_riscv="$work_dir/u-boot/u-boot.bin"
 
 #kernel cmdline
 #cmdline_riscv="'$rootarg_vda rw console=ttyS0 earlycon=sbi'"
@@ -43,7 +44,6 @@ cmdline_arm64="'$rootarg_ram rw console=ttyS0 console=ttyAMA0'"
 qemu_payload_riscv64="~/workspace/opensbi/build/platform/qemu/virt/firmware/fw_jump.bin"
 script_dir="~/workspace/scripts"
 uboot_env="$script_dir/tftp-boot.txt"
-work_dir=$(pwd)
 
 if [ "$arch" == "riscv64" ]; then
 	export CROSS_COMPILE=riscv64-linux-
@@ -60,11 +60,11 @@ if [ "$arch" == "riscv64" ]; then
 		riscv64-linux-strip lkvm-static
 		cd -
 		#TODO: build lkvm and copy that as well
-		cp -f /home/atish/workspace/kvmtool/run.sh /home/atish/workspace/busybox-1.27.2-kvm-riscv64/_install/apps/
-		cp -f /home/atish/workspace/kvmtool/lkvm-static /home/atish/workspace/busybox-1.27.2-kvm-riscv64/_install/apps
-		cp -f /home/atish/workspace/linux/arch/riscv/boot/Image /home/atish/workspace/busybox-1.27.2-kvm-riscv64/_install/apps
-		cd /home/atish/workspace/busybox-1.27.2-kvm-riscv64/_install; find ./ | cpio -o -H newc > ../../rootfs_kvm_riscv64.img; cd -
-		cp rootfs_kvm_riscv64.img $rootfs_path
+		cp -f $work_dir/kvmtool/run.sh /home/atish/workspace/busybox-1.27.2-kvm-riscv64/_install/apps/
+		cp -f $work_dir/kvmtool/lkvm-static /home/atish/workspace/busybox-1.27.2-kvm-riscv64/_install/apps
+		cp -f $work_dir/linux/arch/riscv/boot/Image /home/atish/workspace/busybox-1.27.2-kvm-riscv64/_install/apps
+		cd $work_dir/busybox-1.27.2-kvm-riscv64/_install; find ./ | cpio -o -H newc > ../../rootfs_kvm_riscv64.img; cd -
+		cp $work_dir/rootfs_kvm_riscv64.img $rootfs_path
 		rootfs_riscv_initramfs="$rootfs_path/rootfs_kvm_riscv64.img"
 		rootfsargs="-initrd $rootfs_riscv_initramfs"
 		rootarg=$rootargam
@@ -97,8 +97,8 @@ if [ "$arch" == "riscv64" ] || [ "$arch" == "riscv32" ]; then
 	fi
 	echo $doptions
 	if [ "$distro" == "kvm" ]; then
-		qemu_run_cmd="$qemu_bin -monitor null -cpu rv64,x-h=true -M virt -m 512M -smp 8 -display none -serial mon:stdio -kernel $qemu_payload_riscv64 \
-		-device loader,file=$kernel,addr=0x80200000 $rootfsargs -append $cmdline $doptions"
+		qemu_run_cmd="$qemu_bin -monitor null -cpu rv64,x-h=true -M virt -m 512M -smp 8 -display none -serial mon:stdio -bios $qemu_payload_riscv64 \
+		-kernel $kernel $rootfsargs -append $cmdline $doptions"
 	elif [ "$bl" == "uboot" ]; then
 		echo "Setting qemu run cmd for $distro"
 		qemu_run_cmd="$qemu_bin -M virt -m 16G -smp 8 -display none -serial mon:stdio -bios $qemu_payload_riscv64 \
