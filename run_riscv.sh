@@ -13,6 +13,7 @@ work_dir="/home/atish/workspace"
 #kernel path
 #kernel="/scratch/workspace/freedom-u-sdk/work/linux/arch/riscv/boot/Image"
 kernel_riscv="$work_dir/linux/arch/riscv/boot/Image"
+kernel_riscv_gz="$work_dir/linux/arch/riscv/boot/Image.gz"
 kernel_arm="$work_dir/linux/arch/arm/boot/zImage"
 kernel_arm64="$work_dir/linux/arch/arm64/boot/Image"
 
@@ -70,8 +71,8 @@ if [ "$arch" == "riscv64" ]; then
 		rootarg=$rootargam
 	elif [ "$distro" == "fedora" ];then
 		#rootfs_riscv_ext2="/media/atish/scratch2/fedora_image/Fedora-Developer-Rawhide-20190328.n.0-sda.raw"
-		#rootfs_riscv_ext2="/scratch2/fedora_riscv/Fedora-Developer-Rawhide-20190516.n.0-sda.raw"
-		rootfs_riscv_ext2="/scratch2/fedora_riscv/Fedora_20190703_glibc_sdb.raw"
+		rootfs_riscv_ext2="/scratch2/fedora_riscv/Fedora-Developer-Rawhide-20190516.n.0-sda.raw"
+		#rootfs_riscv_ext2="/scratch2/fedora_riscv/Fedora_20190703_glibc_sdb.raw"
 		#rootfs_riscv_ext2="/scratch2/fedora_riscv/Fedora-Developer-Rawhide-20190703.n.0-sda2.raw"
 		rootfsargs="-drive file=$rootfs_riscv_ext2,format=raw,id=hd0 -device virtio-blk-device,drive=hd0" 
 		rootarg="root=/dev/vda2"
@@ -87,7 +88,8 @@ fi
 
 #arch specific
 if [ "$arch" == "riscv64" ] || [ "$arch" == "riscv32" ]; then
-	cmdline="'$rootarg rw console=ttyS0 earlycon=sbi'"
+	#cmdline="'$rootarg rw console=ttyS0 earlycon'"
+	cmdline="'$rootarg rw console=ttyS0 earlycon=uart8250,mmio,0x10000000'"
 	kernel=$kernel_riscv
 	echo "Setting qemu run cmd for $distro with $debug"
 	if [ "$debug" == "gdb" ]; then
@@ -100,8 +102,9 @@ if [ "$arch" == "riscv64" ] || [ "$arch" == "riscv32" ]; then
 		qemu_run_cmd="$qemu_bin -monitor null -cpu rv64,x-h=true -M virt -m 512M -smp 8 -display none -serial mon:stdio -bios $qemu_payload_riscv64 \
 		-kernel $kernel $rootfsargs -append $cmdline $doptions"
 	elif [ "$bl" == "uboot" ]; then
+		kernel=$kernel_riscv_gz
 		echo "Setting qemu run cmd for $distro"
-		qemu_run_cmd="$qemu_bin -M virt -m 16G -smp 8 -display none -serial mon:stdio -bios $qemu_payload_riscv64 \
+		qemu_run_cmd="$qemu_bin -M virt -m 4G -smp 8 -display none -serial mon:stdio -bios $qemu_payload_riscv64 \
 			-kernel $uboot_riscv \
 			-device loader,file=$kernel,addr=0x84000000 $rootfsargs \
 			-object rng-random,filename=/dev/urandom,id=rng0 \
